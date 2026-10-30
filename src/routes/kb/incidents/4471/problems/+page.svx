@@ -1,0 +1,72 @@
+---
+layout: runbook
+title: '#4471 holds three problems'
+owner: GidianB
+status: open
+reviewed: 2026-10-30
+signature: v1.eyJzdWIiOiI4OTIwIiwiYXVkIjoiY2hhbGxlbmdlOndoYXQtaXQtc2hvd3MiLCJpYXQiOjE3OTMzODk4MTYsImV4cCI6MTc5MzQ3NjIxNn0.QibTM1d7oogxEsNk-UNbZttyscwgwaflRjZwyUq07CA
+---
+
+<script>
+  import ProblemTable from '#lib/kb/ProblemTable.svelte';
+  import Callout from '#lib/kb/Callout.svelte';
+  import RenderStamp from '#lib/kb/RenderStamp.svelte';
+</script>
+
+#4471 is not one bug. Its reports describe three problems, and each problem now has its own
+ticket. The [#4471 page](/kb/incidents/4471) says "one issue, one fix queued". That fix covers
+only the first problem below.
+
+<ProblemTable
+  ticket={4471}
+  repo="GidianB/support-kb"
+  problems={[
+    { key: 'parser', what: 'The parser reads dates month first', issue: 1 },
+    { key: 'hint', what: 'The booking-v3 hint says MM/DD/YYYY', issue: 2 },
+    { key: 'one-day', what: 'Invites move by one day', issue: 3 },
+  ]}
+/>
+
+## How the reports were split
+
+1. Count each report once. The export repeats some rows. One id is one report.
+2. Place each report by its tenant, not by its intake tag. The tenant's locale and booking form
+   decide the cause (`causeOf`). Intake guesses the tag from the reporter's browser, and the
+   guess is often wrong.
+3. Take out the one-day moves the desk noted (`desk-notes.json`). In these reports the date
+   moves by one day. Day and month do not swap.
+
+## The parser reads dates month first
+
+The shared parser reads every date month first. Our tenants write the day first, so day and
+month swap: a booking for 7 June goes out for 6 July. The queued fix for #4471 is for this
+problem. Every day-first tenant has it, through every channel.
+
+## The booking-v3 hint says MM/DD/YYYY
+
+The booking-v3 form prints MM/DD/YYYY under its date field. People at day-first tenants on
+booking-v3 type the month first, as the hint tells them. The form then reads the date the
+tenant's way, day first, and the date swaps. This happens only through the form. A fix to the
+parser does not change it: the hint must show the tenant's own date order.
+
+## Invites move by one day
+
+These reports have no swap. The date is one day early or late:
+
+- "Client in Lisbon got Tuesday. Client in Toronto got Monday. Same meeting. We held it twice."
+- "The invite arrived before I made the booking."
+- "Tuesday 6 October showed as Monday."
+
+People in different places see different days for the same booking, so look at time zone
+handling, not at date order. A fix to the parser does not change it.
+
+<Callout kind="warn">
+
+The three problems share subject lines such as "Wrong day on the invite". The desk merges on
+subject alone ([decision 0001](/kb/decisions/0001-dedupe-by-subject)), so all three went into
+one ticket. Before you merge a date report, check its tenant, its channel, and whether the day
+moved by one.
+
+</Callout>
+
+<RenderStamp {signature} />
